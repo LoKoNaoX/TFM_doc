@@ -22,3 +22,13 @@ C6 BIBLIOGRAFIA
 
 ANEXOS
 CODIGO PROGRAMA
+
+PROGRAMACION SENSOR TEMP ----> https://programarfacil.com/blog/arduino-blog/termometro-infrarrojo-con-arduino-mlx90614/ 
+RAMPS -----------------------> http://domoticx.com/arduino-mega-shield-ramps/ 
+RAMPS -----------------------> https://reprap.org/wiki/File:Arduinomegapololushieldschematic.png 
+RAMPS -----------------------> https://lh3.googleusercontent.com/-U9T7mvY1HEU/W1CnoHTX_6I/AAAAAAAAFnA/3xvEqwR-yUQw7biGTTp1yQP2Dn_eI1AZgCLcBGAs/s1600/RAMPS%2B1.4_mod.png
+RAMPS -----------------------> https://lh3.googleusercontent.com/-AnUEJG0qiLc/W1CnuNiULUI/AAAAAAAAFnE/mUAf8tUqi6AA6-SmGOZfe_13DWkKMaefACLcBGAs/s1600/RAMPS1.4schematic_.jpg
+PROGRAMACION MOTORES --------> https://www.prometec.net/ramps-14/
+ENCODER ROTATIVO ------------> https://www.youtube.com/watch?v=fnDHQ6YcxTs&ab_channel=BitwiseAr
+ENCODER ROTATIVO ------------> https://www.biwy-mecatronica.com/2017/11/mpp-encoder-arduino.html
+INTERRUPCIONES --------------> https://www.luisllamas.es/que-son-y-como-usar-interrupciones-en-arduino/
