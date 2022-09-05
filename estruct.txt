@@ -32,3 +32,5 @@ PROGRAMACION MOTORES --------> https://www.prometec.net/ramps-14/
 ENCODER ROTATIVO ------------> https://www.youtube.com/watch?v=fnDHQ6YcxTs&ab_channel=BitwiseAr
 ENCODER ROTATIVO ------------> https://www.biwy-mecatronica.com/2017/11/mpp-encoder-arduino.html
 INTERRUPCIONES --------------> https://www.luisllamas.es/que-son-y-como-usar-interrupciones-en-arduino/
+TFG SOBRE EL TEMA -----------> https://docplayer.es/210703655-Maquina-de-reciclado-de-material-para-impresion-3d.html
+VIDEO -----------------------> https://www.youtube.com/watch?v=MRQKmRvfZMI&ab_channel=diychen
