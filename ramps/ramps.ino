@@ -90,8 +90,8 @@ void setup()
  * FUNCIONES AUXILIARES  
  */
 float sensor_espesor();
-void avance_fil();
-void avance_bob();
+void avance_fil(bool motor);
+void avance_bob(bool motor);
 
 void loop ()
 {
@@ -100,13 +100,13 @@ void loop ()
     
   if (currentMillis - previousMillis_fil >= velocidad_fil) {
     previousMillis_fil = currentMillis;
-    avance_fil();
+    avance_fil(false);
     float espesor_ = sensor_espesor();
     
   }
   if (currentMillis - previousMillis_bob >= velocidad_bob) {
     previousMillis_bob = currentMillis;
-    avance_bob();
+    avance_bob(false);
   }
 
   
@@ -158,18 +158,22 @@ float sensor_espesor()
     }
     return espesor;
 }
-void avance_fil()
+void avance_fil(bool  motor)
 {
-  digitalWrite(Z_DIR_PIN , LOW);
-  digitalWrite(Z_STEP_PIN , HIGH);
-  delay(1);
-  digitalWrite(Z_STEP_PIN , LOW);
+  if (motor){
+    digitalWrite(Z_DIR_PIN , LOW);
+    digitalWrite(Z_STEP_PIN , HIGH);
+    delay(1);
+    digitalWrite(Z_STEP_PIN , LOW);
+  }
 }
 
-void avance_bob()
+void avance_bob(bool motor)
 {
-  digitalWrite(Y_DIR_PIN , LOW);
-  digitalWrite(Y_STEP_PIN , HIGH);
-  delay(1);
-  digitalWrite(Y_STEP_PIN , LOW);
+  if (motor){
+    digitalWrite(Y_DIR_PIN , LOW);
+    digitalWrite(Y_STEP_PIN , HIGH);
+    delay(1);
+    digitalWrite(Y_STEP_PIN , LOW);
+  }
 }
