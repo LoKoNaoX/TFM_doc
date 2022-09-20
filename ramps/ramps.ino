@@ -8,6 +8,22 @@
 /**
  * Constantes
  */
+#include <Wire.h>
+#include <Servo.h>
+
+Servo myservo;  // create servo object to control a servo, later attatched to D9
+
+int period;
+float medida_espesor = 0.0;
+float medida_espesor_previous_error, medida_espesor_error;
+
+float factor_error = 1;
+float kp=6; 
+float ki=4; 
+float kd=1; 
+float medida_espesor_setpoint = 170;           //Should be the medida_espesor from sensor to the middle of the bar in mm
+float PID_p, PID_i, PID_d, PID_total;
+
 //VELOCIDAD DE LOS MOTOERES PASO A PASO
 unsigned long previousMillis_fil = 0;
 unsigned long previousMillis_bob = 0;
@@ -82,9 +98,11 @@ void setup()
  digitalWrite(Fans[0], HIGH);
  digitalWrite(Fans[1], HIGH);
  digitalWrite(Fans[2], HIGH);
- 
+
+ myservo.attach(11);  // attaches the servo on pin 9 to the servo object
+  
  Serial.begin(9600);
- delay(1000);
+
 }
 /**
  * FUNCIONES AUXILIARES  
@@ -99,9 +117,36 @@ void loop ()
 
     
   if (currentMillis - previousMillis_fil >= velocidad_fil) {
+    period = velocidad_fil;
     previousMillis_fil = currentMillis;
     avance_fil(false);
-    float espesor_ = sensor_espesor();
+    medida_espesor = sensor_espesor();
+  
+    medida_espesor_error = (medida_espesor_setpoint - medida_espesor)*factor_error;   
+    PID_p = kp * medida_espesor_error;
+    float dist_diference = medida_espesor_error - medida_espesor_previous_error;     
+    PID_d = kd*((medida_espesor_error - medida_espesor_previous_error)/period);
+      
+    if(-3 < medida_espesor_error && medida_espesor_error < 3)
+    {
+      PID_i = PID_i + (ki * medida_espesor_error);
+    }
+    else
+    {
+      PID_i = 0;
+    }
+  
+    PID_total = PID_p + PID_i + PID_d;  
+    PID_total = map(PID_total, -150, 150, 0, 150);
+  
+    if(PID_total < 20){PID_total = 20;}
+    if(PID_total > 160) {PID_total = 160; } 
+         
+    Serial.print("----->PID_TOTAL : ");
+    Serial.print(PID_total);
+    Serial.println(160-PID_total);
+    myservo.write(160-PID_total);  
+    medida_espesor_previous_error = medida_espesor_error;
     
   }
   if (currentMillis - previousMillis_bob >= velocidad_bob) {
@@ -130,8 +175,8 @@ float sensor_espesor()
     
     if(debug_espesor)
     { 
-      Serial.print("Sensor : ");
-      Serial.println(sensor_diameter_value);
+      //Serial.print("Sensor : ");
+      //Serial.println(sensor_diameter_value);
     }
     
      if(iterador >= num_muestra)
