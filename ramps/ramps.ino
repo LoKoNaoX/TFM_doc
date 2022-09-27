@@ -21,9 +21,10 @@ float factor_error = 1;
 float kp=6; 
 float ki=4; 
 float kd=1; 
-float medida_espesor_setpoint = 170;           //Should be the medida_espesor from sensor to the middle of the bar in mm
-float PID_p, PID_i, PID_d, PID_total;
+float medida_espesor_setpoint = 163;  //Should be the medida_espesor
 
+float PID_p, PID_i, PID_d;
+float PID_total = 60;
 //VELOCIDAD DE LOS MOTOERES PASO A PASO
 unsigned long previousMillis_fil = 0;
 unsigned long previousMillis_bob = 0;
@@ -38,7 +39,6 @@ float media=0;
 int iterador = 0;
 float media_arr[15];
 
-float espesor_deseado = 168; //Factor de conversion que equivale a 1,75 
 
 //VENTILADORES
 
@@ -74,7 +74,7 @@ float espesor_deseado = 168; //Factor de conversion que equivale a 1,75
 
 #define sensor_diameter_pin A4
 
-const int Fans[3] = {16,17,23};// the number of the LED pin
+const int Fans[3] = {16,17,23};// the number of the FAN pin
 
 /**
  * FUNCION SETUP
@@ -100,7 +100,7 @@ void setup()
  digitalWrite(Fans[2], HIGH);
 
  myservo.attach(11);  // attaches the servo on pin 9 to the servo object
-  
+ myservo.write(60);
  Serial.begin(9600);
 
 }
@@ -119,7 +119,7 @@ void loop ()
   if (currentMillis - previousMillis_fil >= velocidad_fil) {
     period = velocidad_fil;
     previousMillis_fil = currentMillis;
-    avance_fil(false);
+    avance_fil(true );
     medida_espesor = sensor_espesor();
   
     medida_espesor_error = (medida_espesor_setpoint - medida_espesor)*factor_error;   
@@ -139,19 +139,21 @@ void loop ()
     PID_total = PID_p + PID_i + PID_d;  
     PID_total = map(PID_total, -150, 150, 0, 150);
   
-    if(PID_total < 20){PID_total = 20;}
-    if(PID_total > 160) {PID_total = 160; } 
+    if(PID_total < 50){PID_total = 50;}
+    if(PID_total > 135) {PID_total = 135; } 
          
     Serial.print("----->PID_TOTAL : ");
     Serial.print(PID_total);
     Serial.println(160-PID_total);
-    myservo.write(160-PID_total);  
+    myservo.write(PID_total);
     medida_espesor_previous_error = medida_espesor_error;
     
   }
+  
+  
   if (currentMillis - previousMillis_bob >= velocidad_bob) {
     previousMillis_bob = currentMillis;
-    avance_bob(false);
+    avance_bob(true);
   }
 
   
