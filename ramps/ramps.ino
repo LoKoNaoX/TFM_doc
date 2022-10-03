@@ -19,7 +19,7 @@ float medida_espesor_previous_error, medida_espesor_error;
 
 float factor_error = 1;
 float kp=6; 
-float ki=4; 
+float ki=0.4; 
 float kd=1; 
 float medida_espesor_setpoint = 163;  //Should be the medida_espesor
 
@@ -101,7 +101,9 @@ void setup()
 
  myservo.attach(11);  // attaches the servo on pin 9 to the servo object
  myservo.write(60);
- Serial.begin(9600);
+ Serial.begin(115200);
+ Serial.println("Referencia Planta Actuacion");
+ 
 
 }
 /**
@@ -126,14 +128,17 @@ void loop ()
     PID_p = kp * medida_espesor_error;
     float dist_diference = medida_espesor_error - medida_espesor_previous_error;     
     PID_d = kd*((medida_espesor_error - medida_espesor_previous_error)/period);
-      
-    if(-3 < medida_espesor_error && medida_espesor_error < 3)
+
+    if(PID_total>=50 && PID_total<=135)
     {
-      PID_i = PID_i + (ki * medida_espesor_error);
-    }
-    else
-    {
-      PID_i = 0;
+      if(-3 < medida_espesor_error && medida_espesor_error < 3)
+      {
+        PID_i = PID_i + (ki * medida_espesor_error);
+      }
+      else
+      {
+        PID_i = 0;
+      }
     }
   
     PID_total = PID_p + PID_i + PID_d;  
@@ -142,9 +147,12 @@ void loop ()
     if(PID_total < 50){PID_total = 50;}
     if(PID_total > 135) {PID_total = 135; } 
          
-    Serial.print("----->PID_TOTAL : ");
-    Serial.print(PID_total);
-    Serial.println(160-PID_total);
+   
+    Serial.print(medida_espesor_setpoint);
+    Serial.print(" ");
+    Serial.print(medida_espesor);
+    Serial.print(" ");
+    Serial.println(PID_total);
     myservo.write(PID_total);
     medida_espesor_previous_error = medida_espesor_error;
     
@@ -194,8 +202,8 @@ float sensor_espesor()
 
       if(debug_espesor)
       {
-        Serial.print("MEDIA Sensor MEDIA : ");
-        Serial.println(espesor);
+        //Serial.print("MEDIA Sensor MEDIA : ");
+        //Serial.println(espesor);
       }
       
     }
