@@ -32,12 +32,12 @@ int velocidad_fil = 30;
 int velocidad_bob = 290; //Se recomiend que velocidad_bob = 10 * velocidad_fil
 
 //SENSOR ESPESOR
-bool debug_espesor = true;
-int num_muestra = 15;
-float espesor;  
-float media=0;
-int iterador = 0;
-float media_arr[15];
+bool debug_espesor = false; //Para mostrar las trazas
+int num_muestra = 15;       //Numero de muestras para calcular la media del valor (filtro) 
+float espesor;              //Variable de salida del filtro
+float media=0;              //Variable auxiliar, donde se almacena la media
+int iterador = 0;           //Numero de muestra
+float media_arr[15];        //Array donde se guardan los datos
 
 
 //VENTILADORES
@@ -181,37 +181,37 @@ void loop ()
  */
 float sensor_espesor()
 {
-  int sensor_diameter_value = analogRead(sensor_diameter_pin);   // realizar la lectura
+  int sensor_diameter_value = analogRead(sensor_diameter_pin);   // realiza la lectura del sensor analógico
     
-    if(debug_espesor)
+    if(debug_espesor) //Traza para ver el valor del sensor
     { 
-      //Serial.print("Sensor : ");
-      //Serial.println(sensor_diameter_value);
+      Serial.print("Sensor : ");
+      Serial.println(sensor_diameter_value);
     }
     
-     if(iterador >= num_muestra)
+     if(iterador >= num_muestra)      //Si el el numero de muestra es mayor o igual al deseado (15) 
      {
-      for(int i=0;i<num_muestra;i++)
+      for(int i=0;i<num_muestra;i++)//Suma todos los valores
       {
         media = media + media_arr[i];
       }
-      media = media/num_muestra;
-      espesor = media;
-      media = 0;
-      iterador=0;
+      media = media/num_muestra; //calculo la media
+      espesor = media; // guarda la media en la variable de salida
+      media = 0; //reset media
+      iterador=0; //reset del iterador
 
-      if(debug_espesor)
+      if(debug_espesor) //Traza para ver el valor medio del sensor
       {
-        //Serial.print("MEDIA Sensor MEDIA : ");
-        //Serial.println(espesor);
+        Serial.print("MEDIA Sensor MEDIA : ");
+        Serial.println(espesor);
       }
       
     }
-    else{
-    media_arr[iterador]=sensor_diameter_value;
-    iterador++;
+    else{ //Si el numero de muestra es menor que el deseado (15)
+    media_arr[iterador]=sensor_diameter_value; //guardo en un array el valor
+    iterador++; 
     }
-    return espesor;
+    return espesor; //devuelvo el valor medio
 }
 void avance_fil(bool  motor)
 {
