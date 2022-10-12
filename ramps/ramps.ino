@@ -5,36 +5,45 @@
  * 
  * https://www.thingiverse.com/thing:1141146 POR SI ME HACE FALTA UNA REDUCTORA
  */
-/**
- * Constantes
+/*
+ * LIBRERIAS
  */
 #include <Wire.h>
 #include <Servo.h>
 
+/**
+ * Constantes
+ */
 Servo myservo;  // create servo object to control a servo, later attatched to D9
 
-//VARIABLES PARA EL PID
-int period;
-float medida_espesor = 0.0;
-float medida_espesor_previous_error, medida_espesor_error;
 
-float kp=3; 
-float ki=0.05; 
-float kd=10; 
-float medida_espesor_setpoint = 171;  //Should be the medida_espesor
+/*
+ * VARIABLES GLOBALES
+ */
+ 
+//VARIABLES PARA EL PID SERVO
+int period_servo; //variable para controlar el periodo de actualización del PID servo
+float medida_espesor = 0.0; //variable donde se guarda el valor del espesor actual
+float medida_espesor_previous_error, medida_espesor_error; //Variables para guardar los errores, anteripor y presente  
 
-float PID_p, PID_i, PID_d;
-float PID_total;
-float PID_map;
+float kp_servo=2; //Kp del servo
+float ki_servo=0.05; //Ki del servo
+float kd_servo=3; //Kd del servo
+float medida_espesor_setpoint = 176;  //El valor deseado, que equivale a 1,75 mm de espesor
+
+float PID_servo_p, PID_servo_i, PID_servo_d; //Almacena los valores P, I y D del controlador
+float PID_servo_total; //Suma de los valores
+float PID_servo_map; //Se conversion de la suma para obtener una salida
+
 
 //VELOCIDAD DE LOS MOTOERES PASO A PASO
-unsigned long previousMillis_fil = 0;
-unsigned long previousMillis_bob = 0;
-int velocidad_fil = 30;
-int velocidad_bob = 290; //Se recomiend que velocidad_bob = 10 * velocidad_fil
+unsigned long previousMillis_fil = 0; //Variable para el calculo de tiempo
+unsigned long previousMillis_bob = 0; //Variable para el calculo de tiempo
+
+int velocidad_fil = 30; //Velocidad del filamento
+int velocidad_bob = 290; //Velocidad de la bobina. Se recomiend que velocidad_bob = 10 * velocidad_fil
 
 //SENSOR ESPESOR
-bool debug_espesor = false; //Para mostrar las trazas
 int num_muestra = 15;       //Numero de muestras para calcular la media del valor (filtro) 
 float espesor;              //Variable de salida del filtro
 float media=0;              //Variable auxiliar, donde se almacena la media
@@ -42,8 +51,16 @@ int iterador = 0;           //Numero de muestra
 float media_arr[15];        //Array donde se guardan los datos
 
 
-//VENTILADORES
+//PID TEMPERATURA
+unsigned long previousMillis_temp = 0; //Variable para el calculo del periodo
 
+
+/**
+ * TRAZAS
+ */
+bool debug_espesor = false;  //SENSOR ESPESOR
+bool debug_PID_servo = true; //PID SERVO
+bool debug_PID_temp =false;  //PID TEMPERATURA
 
 /**
  * Definicion De Pines
@@ -104,8 +121,10 @@ void setup()
  myservo.attach(11);  // attaches the servo on pin 9 to the servo object
  myservo.write(60);
  Serial.begin(115200);
- Serial.println("Referencia Medida_espesor PID_p PID_i PID_d Actuacion");
- 
+ if(debug_PID_servo)
+ Serial.println("Referencia Medida_espesor Error PID_servo_p PID_servo_i PID_servo_d Actuacion");
+ if(debug_PID_temp)
+ Serial.println("Referencia Temperatura Error PID_temp_p PID_temp_i PID_temp_d Actuacion");
 
 }
 /**
@@ -114,79 +133,78 @@ void setup()
 float sensor_espesor();
 void avance_fil(bool motor);
 void avance_bob(bool motor);
+void PID_Servo();
 
 void loop ()
 {
  unsigned long currentMillis = millis();
-
-    
+  
   if (currentMillis - previousMillis_fil >= velocidad_fil) {
-    period = velocidad_fil;
+    period_servo = velocidad_fil;
     previousMillis_fil = currentMillis;
     avance_fil(true );
     medida_espesor = sensor_espesor();
-  
-    medida_espesor_error = (medida_espesor_setpoint - medida_espesor);   
-    PID_p = kp * medida_espesor_error;
-    float dist_diference = medida_espesor_error - medida_espesor_previous_error;     
-    PID_d = kd*((medida_espesor_error - medida_espesor_previous_error)/period);
-
-    if(PID_map>=50 && PID_map<=135)
-    {
-      if(-3 < medida_espesor_error && medida_espesor_error < 3)
-      {
-        PID_i = PID_i + (ki * medida_espesor_error);
-      }
-      else
-      {
-        PID_i = 0;
-      }
-    }
-  
-    PID_total = PID_p + PID_i + PID_d;  
-    PID_map = map(PID_total, -50, 4, 50, 135);
-  
-    if(PID_map < 50){PID_map = 50;}
-    if(PID_map > 135) {PID_map = 135; } 
-         
-   
-    Serial.print(medida_espesor_setpoint);
-    Serial.print(" ");
-    Serial.print(medida_espesor);
-    Serial.print(" ");
-    Serial.print(PID_p);
-    Serial.print(" ");
-    Serial.print(PID_i);
-    Serial.print(" ");
-    Serial.print(PID_d);
-    Serial.print(" ");
-    Serial.println(PID_map);
-    myservo.write(PID_map);
-    medida_espesor_previous_error = medida_espesor_error;
-    
-  }
-  
+    PID_Servo();  
+  } 
   
   if (currentMillis - previousMillis_bob >= velocidad_bob) {
     previousMillis_bob = currentMillis;
     avance_bob(true);
   }
-
   
- /*for (int i = 0; i <= Ang2Step(90); i++)
- {
-  digitalWrite(X_STEP_PIN , HIGH);
-  delay(1);
-  digitalWrite(X_STEP_PIN , LOW);
- }
- delay(1000);
-*/
+
 }
 
 
 /*
  * FUNCIONES AUXILIARES
  */
+
+ void PID_Servo()
+ {
+    medida_espesor_error = (medida_espesor_setpoint - medida_espesor);   
+    PID_servo_p = kp_servo * medida_espesor_error;
+    PID_servo_d = kd_servo*((medida_espesor_error - medida_espesor_previous_error)/period_servo);
+
+    if(PID_servo_map>=50 && PID_servo_map<=135)
+    {
+      if(-3 < medida_espesor_error && medida_espesor_error < 3)
+      {
+        PID_servo_i = PID_servo_i + (ki_servo * medida_espesor_error);
+      }
+      else
+      {
+        PID_servo_i = 0;
+      }
+    }
+  
+    PID_servo_total = PID_servo_p + PID_servo_i + PID_servo_d;  
+    PID_servo_map = map(PID_servo_total, -50, 4, 50, 135);
+  
+    if(PID_servo_map < 50){PID_servo_map = 50;}
+    if(PID_servo_map > 135) {PID_servo_map = 135; } 
+         
+    if(debug_PID_servo)
+    {
+      Serial.print(medida_espesor_setpoint);
+      Serial.print(" ");
+      Serial.print(medida_espesor);
+      Serial.print(" ");
+      Serial.print(medida_espesor-medida_espesor_setpoint);
+      Serial.print(" ");
+      Serial.print(PID_servo_p);
+      Serial.print(" ");
+      Serial.print(PID_servo_i);
+      Serial.print(" ");
+      Serial.print(PID_servo_d);
+      Serial.print(" ");
+      Serial.println(PID_servo_map);
+    }
+    
+    myservo.write(PID_servo_map);
+    medida_espesor_previous_error = medida_espesor_error;
+ }
+ 
 float sensor_espesor()
 {
   int sensor_diameter_value = analogRead(sensor_diameter_pin);   // realiza la lectura del sensor analógico
