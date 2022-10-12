@@ -13,18 +13,20 @@
 
 Servo myservo;  // create servo object to control a servo, later attatched to D9
 
+//VARIABLES PARA EL PID
 int period;
 float medida_espesor = 0.0;
 float medida_espesor_previous_error, medida_espesor_error;
 
-float factor_error = 1;
-float kp=6; 
-float ki=0.4; 
-float kd=1; 
-float medida_espesor_setpoint = 163;  //Should be the medida_espesor
+float kp=3; 
+float ki=0.05; 
+float kd=10; 
+float medida_espesor_setpoint = 171;  //Should be the medida_espesor
 
 float PID_p, PID_i, PID_d;
-float PID_total = 60;
+float PID_total;
+float PID_map;
+
 //VELOCIDAD DE LOS MOTOERES PASO A PASO
 unsigned long previousMillis_fil = 0;
 unsigned long previousMillis_bob = 0;
@@ -102,7 +104,7 @@ void setup()
  myservo.attach(11);  // attaches the servo on pin 9 to the servo object
  myservo.write(60);
  Serial.begin(115200);
- Serial.println("Referencia Planta Actuacion");
+ Serial.println("Referencia Medida_espesor PID_p PID_i PID_d Actuacion");
  
 
 }
@@ -124,12 +126,12 @@ void loop ()
     avance_fil(true );
     medida_espesor = sensor_espesor();
   
-    medida_espesor_error = (medida_espesor_setpoint - medida_espesor)*factor_error;   
+    medida_espesor_error = (medida_espesor_setpoint - medida_espesor);   
     PID_p = kp * medida_espesor_error;
     float dist_diference = medida_espesor_error - medida_espesor_previous_error;     
     PID_d = kd*((medida_espesor_error - medida_espesor_previous_error)/period);
 
-    if(PID_total>=50 && PID_total<=135)
+    if(PID_map>=50 && PID_map<=135)
     {
       if(-3 < medida_espesor_error && medida_espesor_error < 3)
       {
@@ -142,18 +144,24 @@ void loop ()
     }
   
     PID_total = PID_p + PID_i + PID_d;  
-    PID_total = map(PID_total, -150, 150, 0, 150);
+    PID_map = map(PID_total, -50, 4, 50, 135);
   
-    if(PID_total < 50){PID_total = 50;}
-    if(PID_total > 135) {PID_total = 135; } 
+    if(PID_map < 50){PID_map = 50;}
+    if(PID_map > 135) {PID_map = 135; } 
          
    
     Serial.print(medida_espesor_setpoint);
     Serial.print(" ");
     Serial.print(medida_espesor);
     Serial.print(" ");
-    Serial.println(PID_total);
-    myservo.write(PID_total);
+    Serial.print(PID_p);
+    Serial.print(" ");
+    Serial.print(PID_i);
+    Serial.print(" ");
+    Serial.print(PID_d);
+    Serial.print(" ");
+    Serial.println(PID_map);
+    myservo.write(PID_map);
     medida_espesor_previous_error = medida_espesor_error;
     
   }
