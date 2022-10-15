@@ -5,17 +5,19 @@
  * 
  * https://www.thingiverse.com/thing:1141146 POR SI ME HACE FALTA UNA REDUCTORA
  */
+
 /*
  * LIBRERIAS
  */
 #include <Wire.h>
 #include <Servo.h>
+#include <Adafruit_MLX90614.h>
 
 /**
  * Constantes
  */
-Servo myservo;  // create servo object to control a servo, later attatched to D9
-
+Servo myservo;  // create servo object to control a servo
+Adafruit_MLX90614 termometroIR = Adafruit_MLX90614(); //Se instancia el objeto
 
 /*
  * VARIABLES GLOBALES
@@ -54,23 +56,28 @@ float media_arr[15];        //Array donde se guardan los datos
 //PID TEMPERATURA
 unsigned long previousMillis_temp = 0; //Variable para el calculo del periodo
 
+float temperatura = 0.0;
+float temperatura_previous_error, temperatura_error;
+
+float kp_temp=15; 
+float ki_temp=0.05; 
+float kd_temp=1; 
+float temperatura_setpoint = 25;  //Should be the temperatura
+
+float PID_Temp_p, PID_Temp_i, PID_Temp_d;
+float PID_Temp_total;
+float PID_Temp_map;
 
 /**
  * TRAZAS
  */
 bool debug_espesor = false;  //SENSOR ESPESOR
-bool debug_PID_servo = true; //PID SERVO
-bool debug_PID_temp =false;  //PID TEMPERATURA
+bool debug_PID_servo = false; //PID SERVO
+bool debug_PID_temp = true;  //PID TEMPERATURA
 
 /**
  * Definicion De Pines
  */
-#define X_STEP_PIN 54
-#define X_DIR_PIN 55
-#define X_ENABLE_PIN 38
-#define X_MIN_PIN 3
-#define X_MAX_PIN 2
-
 #define Y_STEP_PIN 60
 #define Y_DIR_PIN 61
 #define Y_ENABLE_PIN 56
@@ -82,14 +89,6 @@ bool debug_PID_temp =false;  //PID TEMPERATURA
 #define Z_ENABLE_PIN 62
 #define Z_MIN_PIN 18
 #define Z_MAX_PIN 19
-
-#define E_STEP_PIN 26
-#define E_DIR_PIN 28
-#define E_ENABLE_PIN 24
-
-#define Q_STEP_PIN 36
-#define Q_DIR_PIN 34
-#define Q_ENABLE_PIN 30
 
 #define sensor_diameter_pin A4
 
@@ -114,9 +113,7 @@ void setup()
  pinMode(Fans[1], OUTPUT);
  pinMode(Fans[2], OUTPUT);
  
- digitalWrite(Fans[0], HIGH);
- digitalWrite(Fans[1], HIGH);
- digitalWrite(Fans[2], HIGH);
+ termometroIR.begin(); // Iniciar termómetro infrarrojo con Arduino
 
  myservo.attach(11);  // attaches the servo on pin 9 to the servo object
  myservo.write(60);
@@ -125,16 +122,22 @@ void setup()
  Serial.println("Referencia Medida_espesor Error PID_servo_p PID_servo_i PID_servo_d Actuacion");
  if(debug_PID_temp)
  Serial.println("Referencia Temperatura Error PID_temp_p PID_temp_i PID_temp_d Actuacion");
-
 }
+
 /**
  * FUNCIONES AUXILIARES  
  */
-float sensor_espesor();
-void avance_fil(bool motor);
-void avance_bob(bool motor);
-void PID_Servo();
+ 
+float sensor_espesor(); //Toma la medida del espesor
+void avance_fil(bool motor); //Avanza un paso el motor del filamento
+void avance_bob(bool motor); //Avanza un paso el motor de la bobina
+void PID_Servo(); //PID del servomotor
+int PID_Temp(unsigned long currentMillis); //PID de los ventiladores, devuelve el num de ventiladores activos
+void ventiladores(int mapa); //Enciende los ventiladores segun el numero de ventiladores necesarios
 
+/*
+ * FUNCION PRINCIPAL LOOP
+ */
 void loop ()
 {
  unsigned long currentMillis = millis();
@@ -142,7 +145,7 @@ void loop ()
   if (currentMillis - previousMillis_fil >= velocidad_fil) {
     period_servo = velocidad_fil;
     previousMillis_fil = currentMillis;
-    avance_fil(true );
+    avance_fil(true);
     medida_espesor = sensor_espesor();
     PID_Servo();  
   } 
@@ -152,13 +155,102 @@ void loop ()
     avance_bob(true);
   }
   
-
+  int mapa = PID_Temp(currentMillis);
+  ventiladores(mapa);
+    
 }
 
 
 /*
  * FUNCIONES AUXILIARES
  */
+
+////////////////////////////////////////////////////////////
+///////////////////////VENTILADORES/////////////////////////
+////////////////////////////////////////////////////////////
+void ventiladores(int mapa)
+{
+  switch (mapa) {
+   case 0:
+     digitalWrite(Fans[0], LOW);
+     digitalWrite(Fans[1], LOW);
+     digitalWrite(Fans[2], LOW);
+     break;
+     
+   case 1:
+     digitalWrite(Fans[0], LOW);
+     digitalWrite(Fans[1], HIGH);
+     digitalWrite(Fans[2], LOW);
+     break;
+
+   case 2:
+     digitalWrite(Fans[0], HIGH);
+     digitalWrite(Fans[1], LOW);
+     digitalWrite(Fans[2], HIGH);
+     break;
+
+   case 3:
+     digitalWrite(Fans[0], HIGH);
+     digitalWrite(Fans[1], HIGH);
+     digitalWrite(Fans[2], HIGH);
+     break;
+  }
+}
+
+////////////////////////////////////////////////////////////
+/////////////////////PID VENTILADORES///////////////////////
+////////////////////////////////////////////////////////////
+int PID_Temp(unsigned long currentMillis)
+{
+  
+  temperatura = termometroIR.readObjectTempC();
+
+  temperatura_error = (temperatura_setpoint - temperatura);   
+  PID_Temp_p = kp_temp * temperatura_error;
+  float period = currentMillis - previousMillis_temp;     
+  PID_Temp_d = kd_temp*((temperatura_error - temperatura_previous_error)/period);
+
+  if(PID_Temp_map>=50 && PID_Temp_map<=135)
+  {
+    if(-3 < temperatura_error && temperatura_error < 3)
+    {
+      PID_Temp_i = PID_Temp_i + (ki_temp * temperatura_error);
+    }
+    else
+    {
+      PID_Temp_i = 0;
+    }
+  }
+  
+  PID_Temp_total = PID_Temp_p + PID_Temp_i + PID_Temp_d;  
+  PID_Temp_map = map(PID_Temp_total, -150, 3, 3, 0);
+  
+  if(PID_Temp_map < 0){PID_Temp_map = 0;}
+  if(PID_Temp_map > 3) {PID_Temp_map = 3; } 
+         
+  if(debug_PID_temp)
+  {
+    Serial.print(temperatura_setpoint);
+    Serial.print(" ");
+    Serial.print(temperatura);
+    Serial.print(" ");
+    Serial.print(PID_Temp_p);
+    Serial.print(" ");
+    Serial.print(PID_Temp_i);
+    Serial.print(" ");
+    Serial.print(PID_Temp_d);
+    Serial.print(" ");
+    Serial.println(PID_Temp_map);
+  }
+   
+  temperatura_previous_error = temperatura_error;
+  previousMillis_temp = currentMillis;
+  return PID_Temp_map;
+}
+
+////////////////////////////////////////////////////////////
+////////////////////////PID SERVO///////////////////////////
+////////////////////////////////////////////////////////////
 
  void PID_Servo()
  {
@@ -204,7 +296,10 @@ void loop ()
     myservo.write(PID_servo_map);
     medida_espesor_previous_error = medida_espesor_error;
  }
- 
+
+////////////////////////////////////////////////////////////
+///////////////LECTURA SENSOR ESPESOR///////////////////////
+////////////////////////////////////////////////////////////
 float sensor_espesor()
 {
   int sensor_diameter_value = analogRead(sensor_diameter_pin);   // realiza la lectura del sensor analógico
@@ -239,6 +334,10 @@ float sensor_espesor()
     }
     return espesor; //devuelvo el valor medio
 }
+
+////////////////////////////////////////////////////////////
+////////////////////AVANZA UN PASO//////////////////////////
+////////////////////////////////////////////////////////////
 void avance_fil(bool  motor)
 {
   if (motor){
