@@ -210,7 +210,7 @@ int PID_Temp(unsigned long currentMillis)
   float period = currentMillis - previousMillis_temp;     
   PID_Temp_d = kd_temp*((temperatura_error - temperatura_previous_error)/period);
 
-  if(PID_Temp_map>=50 && PID_Temp_map<=135)
+  if(PID_Temp_map>=0 && PID_Temp_map<=3)
   {
     if(-3 < temperatura_error && temperatura_error < 3)
     {
