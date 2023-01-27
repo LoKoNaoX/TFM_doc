@@ -31,7 +31,7 @@ float medida_espesor_previous_error, medida_espesor_error; //Variables para guar
 float kp_servo=2; //Kp del servo
 float ki_servo=0.05; //Ki del servo
 float kd_servo=3; //Kd del servo
-float medida_espesor_setpoint = 176;  //El valor deseado, que equivale a 1,75 mm de espesor
+float medida_espesor_setpoint = 186;  //El valor deseado, que equivale a 1,75 mm de espesor (176 al principio)
 
 float PID_servo_p, PID_servo_i, PID_servo_d; //Almacena los valores P, I y D del controlador
 float PID_servo_total; //Suma de los valores
